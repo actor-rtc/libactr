@@ -1,8 +1,8 @@
-//! Error types for actr-kotlin
+//! Error types for actr
 
-/// Error type for actr-kotlin operations
+/// Error type for actr operations
 #[derive(Debug, thiserror::Error, uniffi::Error)]
-pub enum ActrKotlinError {
+pub enum ActrError {
     #[error("Configuration error: {msg}")]
     ConfigError { msg: String },
 
@@ -25,12 +25,10 @@ pub enum ActrKotlinError {
     WorkloadError { msg: String },
 }
 
-pub type ActrKotlinResult<T> = Result<T, ActrKotlinError>;
+pub type ActrResult<T> = Result<T, ActrError>;
 
-impl From<actr_protocol::ProtocolError> for ActrKotlinError {
+impl From<actr_protocol::ProtocolError> for ActrError {
     fn from(e: actr_protocol::ProtocolError) -> Self {
-        ActrKotlinError::RpcError {
-            msg: e.to_string(),
-        }
+        ActrError::RpcError { msg: e.to_string() }
     }
 }

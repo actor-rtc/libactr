@@ -232,17 +232,17 @@ impl ActrConfigBuilder {
         })
     }
 
-    pub fn build(&self) -> Result<ActrConfig, crate::ActrKotlinError> {
+    pub fn build(&self) -> Result<ActrConfig, crate::ActrError> {
         let signaling_url =
             self.signaling_url
                 .clone()
-                .ok_or_else(|| crate::ActrKotlinError::ConfigError {
+                .ok_or_else(|| crate::ActrError::ConfigError {
                     msg: "signaling_url is required".to_string(),
                 })?;
 
         let actor_type = self.actor_type.clone().unwrap_or_else(|| ActrType {
             manufacturer: "acme".to_string(),
-            name: "kotlin.actor".to_string(),
+            name: "actor".to_string(),
         });
 
         Ok(ActrConfig {
@@ -263,9 +263,14 @@ impl Default for ActrConfigBuilder {
 
 impl ActrConfig {
     /// Convert to actr_config::Config for runtime use
-    pub(crate) fn to_actr_config(&self) -> actr_config::Config {
+    pub(crate) fn to_actr_config(&self) -> crate::ActrResult<actr_config::Config> {
         use actr_config::*;
         use url::Url;
+
+        let signaling_url =
+            Url::parse(&self.signaling_url).map_err(|e| crate::ActrError::ConfigError {
+                msg: format!("Invalid signaling_url '{}': {e}", self.signaling_url),
+            })?;
 
         // Convert WebRTC config
         let webrtc = self
@@ -348,7 +353,7 @@ impl ActrConfig {
             actr_protocol::Acl { rules }
         });
 
-        Config {
+        Ok(Config {
             package: PackageInfo {
                 name: self.actor_type.name.clone(),
                 actr_type: actr_protocol::ActrType {
@@ -361,8 +366,7 @@ impl ActrConfig {
             },
             exports: vec![],
             dependencies: vec![],
-            signaling_url: Url::parse(&self.signaling_url)
-                .unwrap_or_else(|_| Url::parse("ws://localhost:8081/signaling/ws").unwrap()),
+            signaling_url,
             realm: actr_protocol::Realm {
                 realm_id: self.realm_id,
             },
@@ -378,6 +382,6 @@ impl ActrConfig {
                 tracing_endpoint: "http://localhost:4317".to_string(),
                 tracing_service_name: self.actor_type.name.clone(),
             },
-        }
+        })
     }
 }

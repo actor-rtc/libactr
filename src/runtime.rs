@@ -1,33 +1,17 @@
 //! Runtime wrappers for UniFFI export
 
-use crate::error::{ActrKotlinError, ActrKotlinResult};
+use crate::error::{ActrError, ActrResult};
 use crate::init_logging;
 use crate::types::{ActrConfig, ActrId, ActrType};
 use crate::workload::{DynamicWorkload, WorkloadCallback};
 use actr_runtime::{ActrNode, ActrRef, ActrSystem};
 use parking_lot::Mutex;
 use std::sync::Arc;
-use tokio::runtime::Runtime;
 use tracing::{debug, error, info};
-
-/// Callback for async discovery results
-#[uniffi::export(callback_interface)]
-pub trait DiscoveryCallback: Send + Sync {
-    fn on_discovered(&self, actors: Vec<ActrId>);
-    fn on_error(&self, error: String);
-}
-
-/// Callback for async RPC results
-#[uniffi::export(callback_interface)]
-pub trait RpcCallback: Send + Sync {
-    fn on_success(&self, response: Vec<u8>);
-    fn on_error(&self, error: String);
-}
 
 /// Wrapper for ActrSystem - the entry point for creating actors
 #[derive(uniffi::Object)]
 pub struct ActrSystemWrapper {
-    runtime: Arc<Runtime>,
     inner: Mutex<Option<ActrSystem>>,
     config: ActrConfig,
 }
@@ -35,8 +19,8 @@ pub struct ActrSystemWrapper {
 #[uniffi::export]
 impl ActrSystemWrapper {
     /// Create a new ActrSystem
-    #[uniffi::constructor]
-    pub fn create(config: ActrConfig) -> ActrKotlinResult<Arc<Self>> {
+    #[uniffi::constructor(async_runtime = "tokio")]
+    pub async fn create(config: ActrConfig) -> ActrResult<Arc<Self>> {
         // Initialize logging first
         init_logging();
 
@@ -45,39 +29,23 @@ impl ActrSystemWrapper {
             config.signaling_url, config.realm_id
         );
 
-        let runtime = tokio::runtime::Builder::new_multi_thread()
-            .worker_threads(4)
-            .enable_all()
-            .build()
-            .map_err(|e| {
-                error!("Failed to create Tokio runtime: {}", e);
-                ActrKotlinError::InternalError {
-                    msg: format!("Failed to create Tokio runtime: {e}"),
-                }
-            })?;
-
-        let actr_config = config.to_actr_config();
+        let actr_config = config.to_actr_config()?;
         debug!(
             "ActrConfig created: visible_in_discovery={}",
             actr_config.visible_in_discovery
         );
 
-        let system = runtime
-            .block_on(async {
-                info!("Connecting to signaling server...");
-                ActrSystem::new(actr_config).await
-            })
-            .map_err(|e| {
-                error!("Failed to create ActrSystem: {}", e);
-                ActrKotlinError::InternalError {
-                    msg: format!("Failed to create ActrSystem: {e}"),
-                }
-            })?;
+        info!("Connecting to signaling server...");
+        let system = ActrSystem::new(actr_config).await.map_err(|e| {
+            error!("Failed to create ActrSystem: {}", e);
+            ActrError::InternalError {
+                msg: format!("Failed to create ActrSystem: {e}"),
+            }
+        })?;
 
         info!("ActrSystem created successfully");
 
         Ok(Arc::new(Self {
-            runtime: Arc::new(runtime),
             inner: Mutex::new(Some(system)),
             config,
         }))
@@ -87,12 +55,12 @@ impl ActrSystemWrapper {
     pub fn attach(
         self: Arc<Self>,
         callback: Box<dyn WorkloadCallback>,
-    ) -> ActrKotlinResult<Arc<ActrNodeWrapper>> {
+    ) -> ActrResult<Arc<ActrNodeWrapper>> {
         let system = self
             .inner
             .lock()
             .take()
-            .ok_or_else(|| ActrKotlinError::StateError {
+            .ok_or_else(|| ActrError::StateError {
                 msg: "ActrSystem already consumed".to_string(),
             })?;
 
@@ -100,7 +68,6 @@ impl ActrSystemWrapper {
         let node = system.attach(workload);
 
         Ok(Arc::new(ActrNodeWrapper {
-            runtime: self.runtime.clone(),
             inner: Mutex::new(Some(node)),
             config: self.config.clone(),
         }))
@@ -110,113 +77,75 @@ impl ActrSystemWrapper {
 /// Wrapper for ActrNode - a node ready to start
 #[derive(uniffi::Object)]
 pub struct ActrNodeWrapper {
-    runtime: Arc<Runtime>,
     inner: Mutex<Option<ActrNode<DynamicWorkload>>>,
     #[allow(dead_code)]
     config: ActrConfig,
 }
 
-#[uniffi::export]
+#[uniffi::export(async_runtime = "tokio")]
 impl ActrNodeWrapper {
     /// Start the actor node and return an ActrRef
-    pub fn start(self: Arc<Self>) -> ActrKotlinResult<Arc<ActrRefWrapper>> {
+    pub async fn start(self: Arc<Self>) -> ActrResult<Arc<ActrRefWrapper>> {
         let node = self
             .inner
             .lock()
             .take()
-            .ok_or_else(|| ActrKotlinError::StateError {
+            .ok_or_else(|| ActrError::StateError {
                 msg: "ActrNode already started".to_string(),
             })?;
 
-        let runtime = self.runtime.clone();
+        let actr_ref = node.start().await.map_err(|e| ActrError::ConnectionError {
+            msg: format!("Failed to start actor: {e}"),
+        })?;
 
-        let actr_ref = runtime
-            .block_on(async { node.start().await })
-            .map_err(|e| ActrKotlinError::ConnectionError {
-                msg: format!("Failed to start actor: {e}"),
-            })?;
-
-        Ok(Arc::new(ActrRefWrapper {
-            runtime,
-            inner: actr_ref,
-        }))
+        Ok(Arc::new(ActrRefWrapper { inner: actr_ref }))
     }
 }
 
 /// Wrapper for ActrRef - a reference to a running actor
 #[derive(uniffi::Object)]
 pub struct ActrRefWrapper {
-    runtime: Arc<Runtime>,
     inner: ActrRef<DynamicWorkload>,
 }
 
-#[uniffi::export]
+#[uniffi::export(async_runtime = "tokio")]
 impl ActrRefWrapper {
     /// Get the actor's ID
     pub fn actor_id(&self) -> ActrId {
         self.inner.actor_id().into()
     }
 
-    /// Discover actors of the specified type (blocking)
-    pub fn discover_sync(
-        &self,
-        target_type: ActrType,
-        count: u32,
-    ) -> ActrKotlinResult<Vec<ActrId>> {
+    /// Discover actors of the specified type
+    pub async fn discover(&self, target_type: ActrType, count: u32) -> ActrResult<Vec<ActrId>> {
         let target_proto: actr_protocol::ActrType = target_type.clone().into();
 
         info!(
-            "discover_sync: looking for {}/{} (count={})",
+            "discover: looking for {}/{} (count={})",
             target_type.manufacturer, target_type.name, count
         );
 
-        self.runtime.block_on(async {
-            match self
-                .inner
-                .discover_route_candidates(&target_proto, count)
-                .await
-            {
-                Ok(ids) => {
-                    info!("discover_sync: found {} candidates", ids.len());
-                    for id in &ids {
-                        debug!(
-                            "  - {}/{} #{}",
-                            id.r#type.manufacturer, id.r#type.name, id.serial_number
-                        );
-                    }
-                    Ok(ids.into_iter().map(|id| id.into()).collect())
+        match self
+            .inner
+            .discover_route_candidates(&target_proto, count)
+            .await
+        {
+            Ok(ids) => {
+                info!("discover: found {} candidates", ids.len());
+                for id in &ids {
+                    debug!(
+                        "  - {}/{} #{}",
+                        id.r#type.manufacturer, id.r#type.name, id.serial_number
+                    );
                 }
-                Err(e) => {
-                    error!("discover_sync failed: {}", e);
-                    Err(ActrKotlinError::RpcError {
-                        msg: format!("Discovery failed: {e}"),
-                    })
-                }
+                Ok(ids.into_iter().map(|id| id.into()).collect())
             }
-        })
-    }
-
-    /// Discover actors of the specified type (async)
-    pub fn discover(
-        &self,
-        target_type: ActrType,
-        count: u32,
-        callback: Box<dyn DiscoveryCallback>,
-    ) {
-        let inner = self.inner.clone();
-        let target_proto: actr_protocol::ActrType = target_type.into();
-
-        self.runtime.spawn(async move {
-            match inner.discover_route_candidates(&target_proto, count).await {
-                Ok(ids) => {
-                    let result: Vec<ActrId> = ids.into_iter().map(|id| id.into()).collect();
-                    callback.on_discovered(result);
-                }
-                Err(e) => {
-                    callback.on_error(format!("Discovery failed: {e}"));
-                }
+            Err(e) => {
+                error!("discover failed: {}", e);
+                Err(ActrError::RpcError {
+                    msg: format!("Discovery failed: {e}"),
+                })
             }
-        });
+        }
     }
 
     /// Trigger shutdown
@@ -224,11 +153,9 @@ impl ActrRefWrapper {
         self.inner.shutdown();
     }
 
-    /// Wait for shutdown to complete (blocking)
-    pub fn wait_for_shutdown(&self) {
-        self.runtime.block_on(async {
-            self.inner.wait_for_shutdown().await;
-        });
+    /// Wait for shutdown to complete
+    pub async fn wait_for_shutdown(&self) {
+        self.inner.wait_for_shutdown().await;
     }
 
     /// Check if the actor is shutting down
@@ -236,7 +163,7 @@ impl ActrRefWrapper {
         self.inner.is_shutting_down()
     }
 
-    /// Call a remote actor via RPC proxy (blocking)
+    /// Call a remote actor via RPC proxy
     ///
     /// This sends a request through the local workload's RPC proxy mechanism,
     /// which forwards the call to the remote actor via WebRTC.
@@ -248,42 +175,37 @@ impl ActrRefWrapper {
     ///
     /// # Returns
     /// Response payload bytes (protobuf encoded)
-    pub fn call_remote_sync(
+    pub async fn call_remote(
         &self,
         target: ActrId,
         route_key: String,
         payload: Vec<u8>,
-    ) -> ActrKotlinResult<Vec<u8>> {
+    ) -> ActrResult<Vec<u8>> {
         info!(
-            "call_remote_sync: target={}/{} #{}, route={}",
+            "call_remote: target={}/{} #{}, route={}",
             target.actor_type.manufacturer, target.actor_type.name, target.serial_number, route_key
         );
 
         // Build the proxy request payload
         let proxy_payload = build_rpc_proxy_payload(&target, &route_key, &payload);
 
-        self.runtime.block_on(async {
-            // Create a proxy request that will be handled by DynamicDispatcher
-            let request = RpcProxyRequest {
-                payload: proxy_payload,
-            };
+        // Create a proxy request that will be handled by DynamicDispatcher
+        let request = RpcProxyRequest {
+            payload: proxy_payload,
+        };
 
-            match self.inner.call(request).await {
-                Ok(response) => {
-                    info!(
-                        "call_remote_sync: got response, len={}",
-                        response.payload.len()
-                    );
-                    Ok(response.payload)
-                }
-                Err(e) => {
-                    error!("call_remote_sync failed: {}", e);
-                    Err(ActrKotlinError::RpcError {
-                        msg: format!("Remote call failed: {e}"),
-                    })
-                }
+        match self.inner.call(request).await {
+            Ok(response) => {
+                info!("call_remote: got response, len={}", response.payload.len());
+                Ok(response.payload)
             }
-        })
+            Err(e) => {
+                error!("call_remote failed: {}", e);
+                Err(ActrError::RpcError {
+                    msg: format!("Remote call failed: {e}"),
+                })
+            }
+        }
     }
 }
 

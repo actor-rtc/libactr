@@ -1,7 +1,0 @@
-// actr-kotlin UniFFI interface definition
-// This file defines the API surface exposed to Kotlin
-
-namespace actr_kotlin {
-    // Currently using proc-macro approach, so UDL is minimal
-    // The actual interface is defined in Rust code with #[uniffi::*] attributes
-};

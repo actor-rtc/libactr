@@ -1,6 +1,6 @@
-//! Dynamic Workload implementation for Kotlin callbacks
+//! Dynamic Workload implementation for callback interfaces
 
-use crate::ActrKotlinError;
+use crate::ActrError;
 use crate::types::{ActrId, ActrType};
 use actr_framework::{Bytes, Context, MessageDispatcher, Workload};
 use actr_protocol::{ActorResult, ProtocolError, RpcEnvelope};
@@ -10,19 +10,20 @@ use std::sync::Arc;
 /// Internal route key for RPC proxy requests
 pub const RPC_PROXY_ROUTE: &str = "__internal/rpc_proxy";
 
-/// Callback interface for Kotlin to implement workload logic
+/// Callback interface for implementing workload logic
 #[uniffi::export(callback_interface)]
+#[async_trait]
 pub trait WorkloadCallback: Send + Sync {
     /// Return the actor type for this workload
     fn actor_type(&self) -> ActrType;
 
     /// Handle an incoming RPC request
-    fn on_request(
+    async fn on_request(
         &self,
         route_key: String,
         payload: Vec<u8>,
         ctx: Arc<CallContext>,
-    ) -> Result<Vec<u8>, ActrKotlinError>;
+    ) -> Result<Vec<u8>, ActrError>;
 
     /// Called when the actor starts
     fn on_start(&self, ctx: Arc<CallContext>);
@@ -31,7 +32,7 @@ pub trait WorkloadCallback: Send + Sync {
     fn on_stop(&self);
 }
 
-/// Call context exposed to Kotlin for making RPC calls
+/// Call context exposed for making RPC calls
 #[derive(uniffi::Object)]
 pub struct CallContext {
     self_id: ActrId,
@@ -55,14 +56,6 @@ impl CallContext {
 }
 
 impl CallContext {
-    pub(crate) fn new(self_id: ActrId, caller_id: Option<ActrId>, request_id: String) -> Self {
-        Self {
-            self_id,
-            caller_id,
-            request_id,
-        }
-    }
-
     pub(crate) fn from_context<C: Context>(ctx: &C) -> Self {
         Self {
             self_id: ctx.self_id().into(),
@@ -72,7 +65,7 @@ impl CallContext {
     }
 }
 
-/// Dynamic workload that wraps a Kotlin callback
+/// Dynamic workload that wraps a callback interface
 pub struct DynamicWorkload {
     callback: Arc<dyn WorkloadCallback>,
 }
@@ -89,13 +82,9 @@ impl DynamicWorkload {
 
 impl Workload for DynamicWorkload {
     type Dispatcher = DynamicDispatcher;
-
-    fn actor_type(&self) -> actr_protocol::ActrType {
-        self.callback.actor_type().into()
-    }
 }
 
-/// Dynamic dispatcher that routes messages to the Kotlin callback
+/// Dynamic dispatcher that routes messages to the callback interface
 pub struct DynamicDispatcher;
 
 #[async_trait]
@@ -118,7 +107,8 @@ impl MessageDispatcher for DynamicDispatcher {
         let response = workload
             .callback
             .on_request(envelope.route_key, payload, call_ctx)
-            .map_err(|e| ProtocolError::TransportError(format!("Kotlin callback error: {}", e)))?;
+            .await
+            .map_err(|e| ProtocolError::TransportError(format!("Callback error: {}", e)))?;
 
         Ok(Bytes::from(response))
     }
@@ -192,7 +182,7 @@ fn decode_varint(data: &[u8]) -> ActorResult<(u64, usize)> {
     }
 }
 
-/// Handle RPC proxy requests from Kotlin
+/// Handle RPC proxy requests
 ///
 /// The envelope payload is prost-encoded with field 1 containing our proxy payload.
 /// Our proxy payload format (simple binary):
