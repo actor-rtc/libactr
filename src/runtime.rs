@@ -3,7 +3,7 @@
 use crate::error::{ActrError, ActrResult};
 use crate::workload::{DynamicWorkload, WorkloadCallback};
 use actr_config::Config;
-use actr_protocol::ActrIdExt;
+use actr_protocol::{ActrIdExt, ActrTypeExt};
 use actr_runtime::{ActrId, ActrNode, ActrRef, ActrSystem, ActrType};
 use bytes::Bytes;
 use parking_lot::Mutex;
@@ -111,16 +111,14 @@ impl ActrRefWrapper {
 
     /// Discover actors of the specified type
     pub async fn discover(&self, target_type: ActrType, count: u32) -> ActrResult<Vec<ActrId>> {
-        let target_proto: actr_protocol::ActrType = target_type.clone().into();
-
         info!(
-            "discover: looking for {}/{} (count={})",
-            target_type.manufacturer, target_type.name, count
+            "discover: looking for {} (count={count})",
+            target_type.to_string_repr(),
         );
 
         match self
             .inner
-            .discover_route_candidates(&target_proto, count)
+            .discover_route_candidates(&target_type, count)
             .await
         {
             Ok(ids) => {
@@ -176,9 +174,8 @@ impl ActrRefWrapper {
         request_payload: Vec<u8>,
     ) -> ActrResult<Vec<u8>> {
         info!(
-            "call_remote: target={}, route={}",
-            target.to_string_repr(),
-            route_key
+            "call_remote: target={}, route={route_key}",
+            target.to_string_repr()
         );
 
         // Send request and wait for response (target is our actor_id for logging)
