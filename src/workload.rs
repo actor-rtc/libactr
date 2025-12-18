@@ -1,9 +1,9 @@
 //! Dynamic Workload implementation for callback interfaces
 
 use crate::ActrError;
+use crate::types::ActrId;
 use actr_framework::{Bytes, Context, MessageDispatcher, Workload};
 use actr_protocol::{ActorResult, RpcEnvelope};
-use actr_runtime::ActrId;
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -51,7 +51,7 @@ impl MessageDispatcher for DynamicDispatcher {
     ) -> ActorResult<Bytes> {
         let payload = envelope.payload.map(|p| p.to_vec()).unwrap_or_default();
 
-        let server_id = workload.callback.server_id().await;
+        let server_id: actr_protocol::ActrId = workload.callback.server_id().await.into();
 
         let response = ctx
             .call_raw(

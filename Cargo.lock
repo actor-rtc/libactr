@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "actr-config"
 version = "0.1.6"
-source = "git+https://github.com/actor-rtc/actr?rev=dfdf94b377d4ce038f3e4d0e4c8ebfd0fdc1bd6f#dfdf94b377d4ce038f3e4d0e4c8ebfd0fdc1bd6f"
+source = "git+https://github.com/actor-rtc/actr?rev=febb0f64421bd2786e724638ba9e66161967d923#febb0f64421bd2786e724638ba9e66161967d923"
 dependencies = [
  "actr-protocol",
  "actr-version",
@@ -19,7 +19,7 @@ dependencies = [
 [[package]]
 name = "actr-framework"
 version = "0.1.4"
-source = "git+https://github.com/actor-rtc/actr?rev=dfdf94b377d4ce038f3e4d0e4c8ebfd0fdc1bd6f#dfdf94b377d4ce038f3e4d0e4c8ebfd0fdc1bd6f"
+source = "git+https://github.com/actor-rtc/actr?rev=febb0f64421bd2786e724638ba9e66161967d923#febb0f64421bd2786e724638ba9e66161967d923"
 dependencies = [
  "actr-protocol",
  "anyhow",
@@ -34,7 +34,7 @@ dependencies = [
 [[package]]
 name = "actr-mailbox"
 version = "0.1.4"
-source = "git+https://github.com/actor-rtc/actr?rev=dfdf94b377d4ce038f3e4d0e4c8ebfd0fdc1bd6f#dfdf94b377d4ce038f3e4d0e4c8ebfd0fdc1bd6f"
+source = "git+https://github.com/actor-rtc/actr?rev=febb0f64421bd2786e724638ba9e66161967d923#febb0f64421bd2786e724638ba9e66161967d923"
 dependencies = [
  "actr-protocol",
  "anyhow",
@@ -52,7 +52,7 @@ dependencies = [
 [[package]]
 name = "actr-protocol"
 version = "0.1.5"
-source = "git+https://github.com/actor-rtc/actr?rev=dfdf94b377d4ce038f3e4d0e4c8ebfd0fdc1bd6f#dfdf94b377d4ce038f3e4d0e4c8ebfd0fdc1bd6f"
+source = "git+https://github.com/actor-rtc/actr?rev=febb0f64421bd2786e724638ba9e66161967d923#febb0f64421bd2786e724638ba9e66161967d923"
 dependencies = [
  "anyhow",
  "base122-rs",
@@ -73,7 +73,7 @@ dependencies = [
 [[package]]
 name = "actr-runtime"
 version = "0.1.6"
-source = "git+https://github.com/actor-rtc/actr?rev=dfdf94b377d4ce038f3e4d0e4c8ebfd0fdc1bd6f#dfdf94b377d4ce038f3e4d0e4c8ebfd0fdc1bd6f"
+source = "git+https://github.com/actor-rtc/actr?rev=febb0f64421bd2786e724638ba9e66161967d923#febb0f64421bd2786e724638ba9e66161967d923"
 dependencies = [
  "actr-config",
  "actr-framework",
@@ -112,7 +112,7 @@ dependencies = [
 [[package]]
 name = "actr-version"
 version = "0.1.3"
-source = "git+https://github.com/actor-rtc/actr?rev=dfdf94b377d4ce038f3e4d0e4c8ebfd0fdc1bd6f#dfdf94b377d4ce038f3e4d0e4c8ebfd0fdc1bd6f"
+source = "git+https://github.com/actor-rtc/actr?rev=febb0f64421bd2786e724638ba9e66161967d923#febb0f64421bd2786e724638ba9e66161967d923"
 dependencies = [
  "actr-protocol",
  "anyhow",
@@ -3040,7 +3040,6 @@ dependencies = [
  "anyhow",
  "cargo_metadata",
  "uniffi_bindgen",
- "uniffi_build",
  "uniffi_core",
  "uniffi_macros",
  "uniffi_pipeline",
@@ -3070,17 +3069,6 @@ dependencies = [
  "uniffi_meta",
  "uniffi_pipeline",
  "uniffi_udl",
-]
-
-[[package]]
-name = "uniffi_build"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e55c05228f4858bb258f651d21d743fcc1fe5a2ec20d3c0f9daefddb105ee4d"
-dependencies = [
- "anyhow",
- "camino",
- "uniffi_bindgen",
 ]
 
 [[package]]

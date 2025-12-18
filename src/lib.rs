@@ -13,10 +13,12 @@
 
 mod error;
 mod runtime;
+mod types;
 mod workload;
 
 pub use error::*;
 pub use runtime::*;
+pub use types::*;
 pub use workload::*;
 
 // Generate UniFFI scaffolding

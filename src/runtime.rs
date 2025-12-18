@@ -1,10 +1,11 @@
 //! Runtime wrappers for UniFFI export
 
 use crate::error::{ActrError, ActrResult};
+use crate::types::{ActrId, ActrType};
 use crate::workload::{DynamicWorkload, WorkloadCallback};
 use actr_config::Config;
 use actr_protocol::{ActrIdExt, ActrTypeExt};
-use actr_runtime::{ActrId, ActrNode, ActrRef, ActrSystem, ActrType};
+use actr_runtime::{ActrNode, ActrRef, ActrSystem};
 use bytes::Bytes;
 use parking_lot::Mutex;
 use std::sync::Arc;
@@ -106,19 +107,20 @@ pub struct ActrRefWrapper {
 impl ActrRefWrapper {
     /// Get the actor's ID
     pub fn actor_id(&self) -> ActrId {
-        self.inner.actor_id().clone()
+        self.inner.actor_id().clone().into()
     }
 
     /// Discover actors of the specified type
     pub async fn discover(&self, target_type: ActrType, count: u32) -> ActrResult<Vec<ActrId>> {
+        let proto_type: actr_protocol::ActrType = target_type.into();
         info!(
             "discover: looking for {} (count={count})",
-            target_type.to_string_repr(),
+            proto_type.to_string_repr(),
         );
 
         match self
             .inner
-            .discover_route_candidates(&target_type, count)
+            .discover_route_candidates(&proto_type, count)
             .await
         {
             Ok(ids) => {
@@ -173,9 +175,10 @@ impl ActrRefWrapper {
         route_key: String,
         request_payload: Vec<u8>,
     ) -> ActrResult<Vec<u8>> {
+        let proto_target: actr_protocol::ActrId = target.into();
         info!(
             "call_remote: target={}, route={route_key}",
-            target.to_string_repr()
+            proto_target.to_string_repr()
         );
 
         // Send request and wait for response (target is our actor_id for logging)
