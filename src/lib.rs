@@ -13,31 +13,11 @@
 
 mod error;
 mod runtime;
-mod types;
 mod workload;
 
 pub use error::*;
 pub use runtime::*;
-pub use types::*;
 pub use workload::*;
-
-use std::sync::Once;
-
-static INIT: Once = Once::new();
-
-fn init_logging() {
-    INIT.call_once(|| {
-        use tracing_subscriber::layer::SubscriberExt;
-        use tracing_subscriber::util::SubscriberInitExt;
-
-        tracing_subscriber::registry()
-            .with(tracing_subscriber::fmt::layer())
-            .with(tracing_subscriber::filter::LevelFilter::DEBUG)
-            .init();
-
-        tracing::info!("libactr logging initialized");
-    });
-}
 
 // Generate UniFFI scaffolding
 uniffi::setup_scaffolding!();

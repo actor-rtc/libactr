@@ -1,10 +1,11 @@
 //! Runtime wrappers for UniFFI export
 
 use crate::error::{ActrError, ActrResult};
-use crate::init_logging;
-use crate::types::{ActrConfig, ActrId, ActrType};
 use crate::workload::{DynamicWorkload, WorkloadCallback};
-use actr_runtime::{ActrNode, ActrRef, ActrSystem};
+use actr_config::Config;
+use actr_protocol::ActrIdExt;
+use actr_runtime::{ActrId, ActrNode, ActrRef, ActrSystem, ActrType};
+use bytes::Bytes;
 use parking_lot::Mutex;
 use std::sync::Arc;
 use tracing::{debug, error, info};
@@ -13,30 +14,23 @@ use tracing::{debug, error, info};
 #[derive(uniffi::Object)]
 pub struct ActrSystemWrapper {
     inner: Mutex<Option<ActrSystem>>,
-    config: ActrConfig,
+    config: Config,
 }
 
 #[uniffi::export]
 impl ActrSystemWrapper {
-    /// Create a new ActrSystem
+    /// Create a new ActrSystem from configuration file
     #[uniffi::constructor(async_runtime = "tokio")]
-    pub async fn create(config: ActrConfig) -> ActrResult<Arc<Self>> {
-        // Initialize logging first
-        init_logging();
+    pub async fn new_from_file(config_path: String) -> ActrResult<Arc<Self>> {
+        let config = actr_config::ConfigParser::from_file(&config_path).unwrap();
 
         info!(
             "Creating ActrSystem with signaling_url={}, realm_id={}",
-            config.signaling_url, config.realm_id
-        );
-
-        let actr_config = config.to_actr_config()?;
-        debug!(
-            "ActrConfig created: visible_in_discovery={}",
-            actr_config.visible_in_discovery
+            config.signaling_url, config.realm.realm_id
         );
 
         info!("Connecting to signaling server...");
-        let system = ActrSystem::new(actr_config).await.map_err(|e| {
+        let system = ActrSystem::new(config.clone()).await.map_err(|e| {
             error!("Failed to create ActrSystem: {}", e);
             ActrError::InternalError {
                 msg: format!("Failed to create ActrSystem: {e}"),
@@ -79,7 +73,7 @@ impl ActrSystemWrapper {
 pub struct ActrNodeWrapper {
     inner: Mutex<Option<ActrNode<DynamicWorkload>>>,
     #[allow(dead_code)]
-    config: ActrConfig,
+    config: Config,
 }
 
 #[uniffi::export(async_runtime = "tokio")]
@@ -112,7 +106,7 @@ pub struct ActrRefWrapper {
 impl ActrRefWrapper {
     /// Get the actor's ID
     pub fn actor_id(&self) -> ActrId {
-        self.inner.actor_id().into()
+        self.inner.actor_id().clone()
     }
 
     /// Discover actors of the specified type
@@ -175,191 +169,24 @@ impl ActrRefWrapper {
     ///
     /// # Returns
     /// Response payload bytes (protobuf encoded)
-    pub async fn call_remote(
+    pub async fn call(
         &self,
         target: ActrId,
         route_key: String,
-        payload: Vec<u8>,
+        request_payload: Vec<u8>,
     ) -> ActrResult<Vec<u8>> {
         info!(
-            "call_remote: target={}/{} #{}, route={}",
-            target.actor_type.manufacturer, target.actor_type.name, target.serial_number, route_key
+            "call_remote: target={}, route={}",
+            target.to_string_repr(),
+            route_key
         );
 
-        // Build the proxy request payload
-        let proxy_payload = build_rpc_proxy_payload(&target, &route_key, &payload);
+        // Send request and wait for response (target is our actor_id for logging)
+        let response_bytes = self
+            .inner
+            .call_raw(route_key, Bytes::from(request_payload))
+            .await?;
 
-        // Create a proxy request that will be handled by DynamicDispatcher
-        let request = RpcProxyRequest {
-            payload: proxy_payload,
-        };
-
-        match self.inner.call(request).await {
-            Ok(response) => {
-                info!("call_remote: got response, len={}", response.payload.len());
-                Ok(response.payload)
-            }
-            Err(e) => {
-                error!("call_remote failed: {}", e);
-                Err(ActrError::RpcError {
-                    msg: format!("Remote call failed: {e}"),
-                })
-            }
-        }
-    }
-}
-
-/// Build the RPC proxy payload format
-///
-/// Format:
-/// - 8 bytes: serial_number (u64 big-endian)
-/// - 4 bytes: realm_id (u32 big-endian)
-/// - 2 bytes: manufacturer length (u16 big-endian)
-/// - N bytes: manufacturer string
-/// - 2 bytes: name length (u16 big-endian)
-/// - N bytes: name string
-/// - 2 bytes: route_key length (u16 big-endian)
-/// - N bytes: route_key string
-/// - remaining: actual payload
-fn build_rpc_proxy_payload(target: &ActrId, route_key: &str, payload: &[u8]) -> Vec<u8> {
-    let manufacturer = target.actor_type.manufacturer.as_bytes();
-    let name = target.actor_type.name.as_bytes();
-    let route = route_key.as_bytes();
-
-    let total_len =
-        8 + 4 + 2 + manufacturer.len() + 2 + name.len() + 2 + route.len() + payload.len();
-    let mut buf = Vec::with_capacity(total_len);
-
-    buf.extend_from_slice(&target.serial_number.to_be_bytes());
-    buf.extend_from_slice(&target.realm_id.to_be_bytes());
-    buf.extend_from_slice(&(manufacturer.len() as u16).to_be_bytes());
-    buf.extend_from_slice(manufacturer);
-    buf.extend_from_slice(&(name.len() as u16).to_be_bytes());
-    buf.extend_from_slice(name);
-    buf.extend_from_slice(&(route.len() as u16).to_be_bytes());
-    buf.extend_from_slice(route);
-    buf.extend_from_slice(payload);
-
-    buf
-}
-
-/// RPC Proxy Request - wraps a raw payload for forwarding to remote actor
-struct RpcProxyRequest {
-    payload: Vec<u8>,
-}
-
-/// RPC Proxy Response - wraps raw response bytes from remote actor
-struct RpcProxyResponse {
-    payload: Vec<u8>,
-}
-
-impl actr_protocol::RpcRequest for RpcProxyRequest {
-    type Response = RpcProxyResponse;
-
-    fn route_key() -> &'static str {
-        crate::workload::RPC_PROXY_ROUTE
-    }
-}
-
-impl actr_protocol::prost::Message for RpcProxyRequest {
-    fn encode_raw(&self, buf: &mut impl bytes::BufMut)
-    where
-        Self: Sized,
-    {
-        // Encode as field 1, wire type 2 (length-delimited)
-        actr_protocol::prost::encoding::encode_key(
-            1,
-            actr_protocol::prost::encoding::WireType::LengthDelimited,
-            buf,
-        );
-        actr_protocol::prost::encoding::encode_varint(self.payload.len() as u64, buf);
-        buf.put_slice(&self.payload);
-    }
-
-    fn merge_field(
-        &mut self,
-        tag: u32,
-        wire_type: actr_protocol::prost::encoding::WireType,
-        buf: &mut impl bytes::Buf,
-        ctx: actr_protocol::prost::encoding::DecodeContext,
-    ) -> Result<(), actr_protocol::prost::DecodeError>
-    where
-        Self: Sized,
-    {
-        if tag == 1 {
-            actr_protocol::prost::encoding::bytes::merge(wire_type, &mut self.payload, buf, ctx)
-        } else {
-            actr_protocol::prost::encoding::skip_field(wire_type, tag, buf, ctx)
-        }
-    }
-
-    fn encoded_len(&self) -> usize {
-        1 + actr_protocol::prost::encoding::encoded_len_varint(self.payload.len() as u64)
-            + self.payload.len()
-    }
-
-    fn clear(&mut self) {
-        self.payload.clear();
-    }
-}
-
-impl Default for RpcProxyRequest {
-    fn default() -> Self {
-        Self {
-            payload: Vec::new(),
-        }
-    }
-}
-
-impl actr_protocol::prost::Message for RpcProxyResponse {
-    fn encode_raw(&self, buf: &mut impl bytes::BufMut)
-    where
-        Self: Sized,
-    {
-        // Encode as field 1, wire type 2 (length-delimited)
-        // tag = (1 << 3) | 2 = 0x0a
-        actr_protocol::prost::encoding::encode_key(
-            1,
-            actr_protocol::prost::encoding::WireType::LengthDelimited,
-            buf,
-        );
-        actr_protocol::prost::encoding::encode_varint(self.payload.len() as u64, buf);
-        buf.put_slice(&self.payload);
-    }
-
-    fn merge_field(
-        &mut self,
-        tag: u32,
-        wire_type: actr_protocol::prost::encoding::WireType,
-        buf: &mut impl bytes::Buf,
-        ctx: actr_protocol::prost::encoding::DecodeContext,
-    ) -> Result<(), actr_protocol::prost::DecodeError>
-    where
-        Self: Sized,
-    {
-        // Only handle field 1 (our payload field)
-        if tag == 1 {
-            actr_protocol::prost::encoding::bytes::merge(wire_type, &mut self.payload, buf, ctx)
-        } else {
-            actr_protocol::prost::encoding::skip_field(wire_type, tag, buf, ctx)
-        }
-    }
-
-    fn encoded_len(&self) -> usize {
-        // tag (1 byte) + length varint + payload
-        1 + actr_protocol::prost::encoding::encoded_len_varint(self.payload.len() as u64)
-            + self.payload.len()
-    }
-
-    fn clear(&mut self) {
-        self.payload.clear();
-    }
-}
-
-impl Default for RpcProxyResponse {
-    fn default() -> Self {
-        Self {
-            payload: Vec::new(),
-        }
+        Ok(response_bytes.to_vec())
     }
 }
