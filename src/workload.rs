@@ -53,7 +53,6 @@ impl MessageDispatcher for DynamicDispatcher {
 
         let server_id = workload.callback.server_id().await;
 
-        // Call remote server via Dest::Actor
         let response = ctx
             .call_raw(
                 &server_id,
