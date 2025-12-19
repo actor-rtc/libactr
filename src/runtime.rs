@@ -23,7 +23,11 @@ impl ActrSystemWrapper {
     /// Create a new ActrSystem from configuration file
     #[uniffi::constructor(async_runtime = "tokio")]
     pub async fn new_from_file(config_path: String) -> ActrResult<Arc<Self>> {
-        let config = actr_config::ConfigParser::from_file(&config_path).unwrap();
+        let config = actr_config::ConfigParser::from_file(&config_path).map_err(|e| {
+            ActrError::ConfigError {
+                msg: format!("Failed to parse config file at {}: {}", config_path, e),
+            }
+        })?;
 
         info!(
             "Creating ActrSystem with signaling_url={}, realm_id={}",
