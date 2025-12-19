@@ -193,4 +193,52 @@ impl ActrRefWrapper {
 
         Ok(response_bytes.to_vec())
     }
+
+    /// Send a DataStream to a remote actor (Fast Path)
+    ///
+    /// This method sends a DataStream message directly to a remote actor via WebRTC.
+    /// Unlike RPC calls, DataStream uses a separate fast path optimized for streaming data.
+    ///
+    /// # Arguments
+    /// - `target`: Target actor ID
+    /// - `data_stream`: DataStream containing stream_id, sequence, payload, etc.
+    ///
+    /// # Example
+    ///
+    /// ```kotlin
+    /// val dataStream = DataStream(
+    ///     streamId = "file-transfer-001",
+    ///     sequence = 0uL,
+    ///     payload = fileChunk,
+    ///     metadata = emptyList(),
+    ///     timestampMs = System.currentTimeMillis()
+    /// )
+    /// actrRef.sendDataStream(targetId, dataStream)
+    /// ```
+    pub async fn send_data_stream(
+        &self,
+        target: ActrId,
+        data_stream: crate::types::DataStream,
+    ) -> ActrResult<()> {
+        let proto_target: actr_protocol::ActrId = target.into();
+        info!(
+            "send_data_stream: target={}, stream_id={}, seq={}",
+            proto_target.to_string_repr(),
+            data_stream.stream_id,
+            data_stream.sequence
+        );
+
+        // Send via ActrRef's send_data_stream_raw method
+        self.inner
+            .send_data_stream_raw(
+                &proto_target,
+                data_stream.stream_id,
+                data_stream.sequence,
+                Bytes::from(data_stream.payload),
+                data_stream.timestamp_ms,
+            )
+            .await?;
+
+        Ok(())
+    }
 }
