@@ -2,7 +2,7 @@
 
 use crate::error::{ActrError, ActrResult};
 use crate::types::{ActrId, ActrType};
-use crate::workload::{DynamicWorkload, WorkloadCallback};
+use crate::workload::{DynamicWorkload, WorkloadBridge};
 use actr_config::Config;
 use actr_protocol::{ActrIdExt, ActrTypeExt};
 use actr_runtime::{ActrNode, ActrRef, ActrSystem};
@@ -53,7 +53,7 @@ impl ActrSystemWrapper {
     /// Attach a workload and create an ActrNode
     pub fn attach(
         self: Arc<Self>,
-        callback: Box<dyn WorkloadCallback>,
+        callback: Box<dyn WorkloadBridge>,
     ) -> ActrResult<Arc<ActrNodeWrapper>> {
         let system = self
             .inner

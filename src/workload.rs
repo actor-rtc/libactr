@@ -1,40 +1,59 @@
 //! Dynamic Workload implementation for callback interfaces
 
-use crate::ActrError;
 use crate::types::ActrId;
+use crate::{ActrResult, context::ContextBridge};
 use actr_framework::{Bytes, Context, MessageDispatcher, Workload};
 use actr_protocol::{ActorResult, RpcEnvelope};
 use async_trait::async_trait;
 use std::sync::Arc;
 
-/// Callback interface for implementing workload logic
 #[uniffi::export(callback_interface)]
-#[async_trait]
-pub trait WorkloadCallback: Send + Sync {
+#[async_trait::async_trait]
+pub trait WorkloadBridge: Send + Sync + 'static {
     async fn server_id(&self) -> ActrId;
 
-    /// Handle an incoming RPC request
-    async fn on_request(&self, route_key: String, payload: Vec<u8>) -> Result<Vec<u8>, ActrError>;
+    async fn on_start(&self, ctx: Arc<ContextBridge>) -> ActrResult<()>;
+
+    async fn on_stop(&self, ctx: Arc<ContextBridge>) -> ActrResult<()>;
 }
 
 /// Dynamic workload that wraps a callback interface
 #[derive(uniffi::Object)]
 pub struct DynamicWorkload {
-    callback: Arc<dyn WorkloadCallback>,
+    bridge: Arc<dyn WorkloadBridge>,
 }
 
 impl DynamicWorkload {
-    pub fn new(callback: Arc<dyn WorkloadCallback>) -> Self {
-        Self { callback }
-    }
-
-    pub fn callback(&self) -> &Arc<dyn WorkloadCallback> {
-        &self.callback
+    pub fn new(bridge: Arc<dyn WorkloadBridge>) -> Self {
+        Self { bridge }
     }
 }
 
+#[async_trait]
 impl Workload for DynamicWorkload {
     type Dispatcher = DynamicDispatcher;
+
+    async fn on_start<C: Context>(&self, ctx: &C) -> ActorResult<()> {
+        // In libactr, we are using actr_runtime which provides RuntimeContext.
+        // We use a pointer cast here as a temporary bridge.
+        let runtime_ctx =
+            unsafe { &*(ctx as *const C as *const actr_runtime::context::RuntimeContext) };
+        let ctx_bridge = ContextBridge::new(runtime_ctx.clone());
+        self.bridge
+            .on_start(ctx_bridge)
+            .await
+            .map_err(|e| actr_protocol::ProtocolError::SerializationError(e.to_string()))
+    }
+
+    async fn on_stop<C: Context>(&self, ctx: &C) -> ActorResult<()> {
+        let runtime_ctx =
+            unsafe { &*(ctx as *const C as *const actr_runtime::context::RuntimeContext) };
+        let ctx_bridge = ContextBridge::new(runtime_ctx.clone());
+        self.bridge
+            .on_stop(ctx_bridge)
+            .await
+            .map_err(|e| actr_protocol::ProtocolError::SerializationError(e.to_string()))
+    }
 }
 
 /// Dynamic dispatcher that routes messages to the callback interface
@@ -51,7 +70,7 @@ impl MessageDispatcher for DynamicDispatcher {
     ) -> ActorResult<Bytes> {
         let payload = envelope.payload.map(|p| p.to_vec()).unwrap_or_default();
 
-        let server_id: actr_protocol::ActrId = workload.callback.server_id().await.into();
+        let server_id: actr_protocol::ActrId = workload.bridge.server_id().await.into();
 
         let response = ctx
             .call_raw(
