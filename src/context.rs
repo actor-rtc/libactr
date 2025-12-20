@@ -56,6 +56,16 @@ impl ContextBridge {
             .await?;
         Ok(())
     }
+
+    /// Discover an actor of the specified type
+    pub async fn discover(
+        &self,
+        target_type: crate::types::ActrType,
+    ) -> crate::error::ActrResult<crate::types::ActrId> {
+        let proto_type: actr_protocol::ActrType = target_type.into();
+        let id = self.inner.discover_route_candidate(&proto_type).await?;
+        Ok(id.into())
+    }
 }
 
 #[async_trait::async_trait]
