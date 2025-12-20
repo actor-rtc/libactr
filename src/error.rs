@@ -32,3 +32,25 @@ impl From<actr_protocol::ProtocolError> for ActrError {
         ActrError::RpcError { msg: e.to_string() }
     }
 }
+
+impl From<ActrError> for actr_protocol::ProtocolError {
+    fn from(e: ActrError) -> Self {
+        match e {
+            ActrError::ConfigError { msg } => {
+                actr_protocol::ProtocolError::InvalidStateTransition(msg)
+            }
+            ActrError::ConnectionError { msg } => actr_protocol::ProtocolError::TransportError(msg),
+            ActrError::RpcError { msg } => actr_protocol::ProtocolError::TransportError(msg),
+            ActrError::StateError { msg } => {
+                actr_protocol::ProtocolError::InvalidStateTransition(msg)
+            }
+            ActrError::InternalError { msg } => {
+                actr_protocol::ProtocolError::InvalidStateTransition(msg)
+            }
+            ActrError::TimeoutError { .. } => actr_protocol::ProtocolError::Timeout,
+            ActrError::WorkloadError { msg } => {
+                actr_protocol::ProtocolError::InvalidStateTransition(msg)
+            }
+        }
+    }
+}

@@ -130,10 +130,7 @@ impl ActrRefWrapper {
             Ok(ids) => {
                 info!("discover: found {} candidates", ids.len());
                 for id in &ids {
-                    debug!(
-                        "  - {}/{} #{}",
-                        id.r#type.manufacturer, id.r#type.name, id.serial_number
-                    );
+                    debug!("  - candidate: {}", id.to_string_repr());
                 }
                 Ok(ids.into_iter().map(|id| id.into()).collect())
             }
@@ -167,25 +164,15 @@ impl ActrRefWrapper {
     /// which forwards the call to the remote actor via WebRTC.
     ///
     /// # Arguments
-    /// - `target`: Target actor ID
     /// - `route_key`: RPC route key (e.g., "echo.EchoService/Echo")
     /// - `payload`: Request payload bytes (protobuf encoded)
     ///
     /// # Returns
     /// Response payload bytes (protobuf encoded)
-    pub async fn call(
-        &self,
-        target: ActrId,
-        route_key: String,
-        request_payload: Vec<u8>,
-    ) -> ActrResult<Vec<u8>> {
-        let proto_target: actr_protocol::ActrId = target.into();
-        info!(
-            "call_remote: target={}, route={route_key}",
-            proto_target.to_string_repr()
-        );
+    pub async fn call(&self, route_key: String, request_payload: Vec<u8>) -> ActrResult<Vec<u8>> {
+        info!("call_remote: route={route_key}");
 
-        // Send request and wait for response (target is our actor_id for logging)
+        // Send request and wait for response
         let response_bytes = self
             .inner
             .call_raw(route_key, Bytes::from(request_payload))
@@ -195,50 +182,13 @@ impl ActrRefWrapper {
     }
 
     /// Send a DataStream to a remote actor (Fast Path)
-    ///
-    /// This method sends a DataStream message directly to a remote actor via WebRTC.
-    /// Unlike RPC calls, DataStream uses a separate fast path optimized for streaming data.
-    ///
-    /// # Arguments
-    /// - `target`: Target actor ID
-    /// - `data_stream`: DataStream containing stream_id, sequence, payload, etc.
-    ///
-    /// # Example
-    ///
-    /// ```kotlin
-    /// val dataStream = DataStream(
-    ///     streamId = "file-transfer-001",
-    ///     sequence = 0uL,
-    ///     payload = fileChunk,
-    ///     metadata = emptyList(),
-    ///     timestampMs = System.currentTimeMillis()
-    /// )
-    /// actrRef.sendDataStream(targetId, dataStream)
-    /// ```
-    pub async fn send_data_stream(
-        &self,
-        target: ActrId,
-        data_stream: crate::types::DataStream,
-    ) -> ActrResult<()> {
-        let proto_target: actr_protocol::ActrId = target.into();
+    pub async fn send_data_stream(&self, data_stream: crate::types::DataStream) -> ActrResult<()> {
         info!(
-            "send_data_stream: target={}, stream_id={}, seq={}",
-            proto_target.to_string_repr(),
-            data_stream.stream_id,
-            data_stream.sequence
+            "send_data_stream: stream_id={}, seq={}",
+            data_stream.stream_id, data_stream.sequence
         );
 
-        // Send via ActrRef's send_data_stream_raw method
-        self.inner
-            .send_data_stream_raw(
-                &proto_target,
-                data_stream.stream_id,
-                data_stream.sequence,
-                Bytes::from(data_stream.payload),
-                data_stream.timestamp_ms,
-            )
-            .await?;
-
+        // todo: implement this
         Ok(())
     }
 }

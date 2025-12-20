@@ -29,6 +29,9 @@ Optional binding generation (requires UniFFI CLI):
 - Follow `rustfmt` defaults (4-space indentation) and keep modules small and focused.
 - Exported FFI API should stay UniFFI-friendly: avoid generics/borrowed lifetimes, prefer owned types (`String`, `Vec<u8>`, `Arc<T>`), and return `ActrResult<T>` from `#[uniffi::export]` functions.
 - Naming: modules/files `snake_case`, types `CamelCase`, exported wrappers end with `Wrapper`.
+- When logging or printing `ActrType` or `ActrId`, use `to_string_repr()` for stable, readable output.
+- When mapping `ActrError` to `actr_protocol::ProtocolError` in workload/runtime bridges, use `ProtocolError::from` to preserve error categories.
+- When bridging `Context` into `ContextBridge`, use `ContextBridge::try_from_context` and treat non-`RuntimeContext` inputs as errors.
 - ABI/API stability is not guaranteed yet; coordinate breaking FFI changes via PR description.
 
 ## Testing Guidelines

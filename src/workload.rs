@@ -34,25 +34,21 @@ impl Workload for DynamicWorkload {
     type Dispatcher = DynamicDispatcher;
 
     async fn on_start<C: Context>(&self, ctx: &C) -> ActorResult<()> {
-        // In libactr, we are using actr_runtime which provides RuntimeContext.
-        // We use a pointer cast here as a temporary bridge.
-        let runtime_ctx =
-            unsafe { &*(ctx as *const C as *const actr_runtime::context::RuntimeContext) };
-        let ctx_bridge = ContextBridge::new(runtime_ctx.clone());
+        let ctx_bridge = ContextBridge::try_from_context(ctx)
+            .map_err(actr_protocol::ProtocolError::from)?;
         self.bridge
             .on_start(ctx_bridge)
             .await
-            .map_err(|e| actr_protocol::ProtocolError::SerializationError(e.to_string()))
+            .map_err(actr_protocol::ProtocolError::from)
     }
 
     async fn on_stop<C: Context>(&self, ctx: &C) -> ActorResult<()> {
-        let runtime_ctx =
-            unsafe { &*(ctx as *const C as *const actr_runtime::context::RuntimeContext) };
-        let ctx_bridge = ContextBridge::new(runtime_ctx.clone());
+        let ctx_bridge = ContextBridge::try_from_context(ctx)
+            .map_err(actr_protocol::ProtocolError::from)?;
         self.bridge
             .on_stop(ctx_bridge)
             .await
-            .map_err(|e| actr_protocol::ProtocolError::SerializationError(e.to_string()))
+            .map_err(actr_protocol::ProtocolError::from)
     }
 }
 

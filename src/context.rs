@@ -1,7 +1,9 @@
+use crate::error::{ActrError, ActrResult};
 use actr_framework::{Bytes, Context, DataStream, Dest, MediaSample};
 use actr_protocol::{ActorResult, ActrId, RpcRequest};
 use actr_runtime::context::RuntimeContext;
 use futures_util::future::BoxFuture;
+use std::any::TypeId;
 use std::sync::Arc;
 
 /// Context provided to the workload
@@ -13,6 +15,26 @@ pub struct ContextBridge {
 impl ContextBridge {
     pub fn new(inner: RuntimeContext) -> Arc<Self> {
         Arc::new(Self { inner })
+    }
+
+    /// Try to create a ContextBridge from a generic Context implementation.
+    ///
+    /// This performs a runtime type check and fails if the context is not a
+    /// `RuntimeContext`.
+    pub fn try_from_context<C: Context + 'static>(ctx: &C) -> ActrResult<Arc<Self>> {
+        if TypeId::of::<C>() != TypeId::of::<RuntimeContext>() {
+            return Err(ActrError::InternalError {
+                msg: format!(
+                    "Context type mismatch: expected RuntimeContext, got {}",
+                    std::any::type_name::<C>()
+                ),
+            });
+        }
+
+        let runtime_ctx = unsafe { &*(ctx as *const C as *const RuntimeContext) };
+        Ok(Arc::new(Self {
+            inner: runtime_ctx.clone(),
+        }))
     }
 }
 
