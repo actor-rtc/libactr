@@ -1,10 +1,11 @@
-use crate::error::{ActrError, ActrResult};
-use actr_framework::{Bytes, Context, DataStream, Dest, MediaSample};
-use actr_protocol::{ActorResult, ActrId, RpcRequest};
-use actr_runtime::context::RuntimeContext;
+use actr_framework::{Bytes, Context, DataStream, Dest};
+use actr_protocol::{ActrId, PayloadType, RpcRequest};
+use actr_runtime::{ActorResult, MediaSample, context::RuntimeContext};
 use futures_util::future::BoxFuture;
 use std::any::TypeId;
 use std::sync::Arc;
+
+use crate::{ActrError, ActrResult};
 
 /// Context provided to the workload
 #[derive(uniffi::Object, Clone)]
@@ -41,31 +42,71 @@ impl ContextBridge {
 #[uniffi::export(async_runtime = "tokio")]
 impl ContextBridge {
     /// Call a remote actor via RPC (simplified for FFI)
+    ///
+    /// # Arguments
+    /// - `target`: Target actor ID
+    /// - `route_key`: RPC route key (e.g., "echo.EchoService.Echo")
+    /// - `payload_type`: Payload transmission type (RpcReliable, RpcSignal, etc.)
+    /// - `payload`: Request payload bytes (protobuf encoded)
+    /// - `timeout_ms`: Timeout in milliseconds
+    ///
+    /// # Returns
+    /// Response payload bytes (protobuf encoded)
     pub async fn call_raw(
         &self,
         target: crate::types::ActrId,
         route_key: String,
+        payload_type: crate::types::PayloadType,
         payload: Vec<u8>,
+        timeout_ms: i64,
     ) -> crate::error::ActrResult<Vec<u8>> {
         let target_id: ActrId = target.into();
+        let proto_payload_type: PayloadType = payload_type.into();
         let resp = self
             .inner
-            .call_raw(&target_id, &route_key, Bytes::from(payload))
+            .call_raw(
+                &Dest::Actor(target_id),
+                route_key,
+                proto_payload_type,
+                Bytes::from(payload),
+                timeout_ms,
+            )
             .await?;
         Ok(resp.to_vec())
     }
 
+    /// Send a one-way message to an actor (fire-and-forget)
+    ///
+    /// # Arguments
+    /// - `target`: Target actor ID
+    /// - `route_key`: RPC route key (e.g., "echo.EchoService.Echo")
+    /// - `payload_type`: Payload transmission type (RpcReliable, RpcSignal, etc.)
+    /// - `payload`: Message payload bytes (protobuf encoded)
     pub async fn tell_raw(
         &self,
         target: crate::types::ActrId,
-        _route_key: String,
-        _payload: Vec<u8>,
+        route_key: String,
+        payload_type: crate::types::PayloadType,
+        payload: Vec<u8>,
     ) -> crate::error::ActrResult<()> {
-        let _target_id: ActrId = target.into();
-
+        let target_id: ActrId = target.into();
+        let proto_payload_type: PayloadType = payload_type.into();
+        self.inner
+            .tell_raw(
+                &Dest::Actor(target_id),
+                route_key,
+                proto_payload_type,
+                Bytes::from(payload),
+            )
+            .await?;
         Ok(())
     }
 
+    /// Send a DataStream to a remote actor (Fast Path)
+    ///
+    /// # Arguments
+    /// - `target`: Target actor ID
+    /// - `chunk`: DataStream containing stream_id, sequence, payload, etc.
     pub async fn send_data_stream_raw(
         &self,
         target: crate::types::ActrId,
@@ -80,6 +121,12 @@ impl ContextBridge {
     }
 
     /// Discover an actor of the specified type
+    ///
+    /// # Arguments
+    /// - `target_type`: Actor type to discover (manufacturer + name)
+    ///
+    /// # Returns
+    /// The ActrId of a discovered actor
     pub async fn discover(
         &self,
         target_type: crate::types::ActrType,
@@ -108,13 +155,22 @@ impl Context for ContextBridge {
         self.inner.call(target, request).await
     }
 
+    // TODO: this func need fix
     async fn call_raw(
         &self,
         target: &ActrId,
         route_key: &str,
         payload: Bytes,
     ) -> ActorResult<Bytes> {
-        self.inner.call_raw(target, route_key, payload).await
+        self.inner
+            .call_raw(
+                &Dest::Actor(target.clone()),
+                route_key.to_string(),
+                PayloadType::RpcReliable,
+                payload,
+                30000,
+            )
+            .await
     }
 
     async fn tell<R: RpcRequest>(&self, target: &Dest, message: R) -> ActorResult<()> {

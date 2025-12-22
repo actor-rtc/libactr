@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "actr-config"
 version = "0.1.6"
-source = "git+https://github.com/actor-rtc/actr?rev=9fe49c89a36f9ac95e82568b58744871a4b7450a#9fe49c89a36f9ac95e82568b58744871a4b7450a"
+source = "git+https://github.com/actor-rtc/actr?rev=0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b#0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b"
 dependencies = [
  "actr-protocol",
  "actr-version",
@@ -19,7 +19,7 @@ dependencies = [
 [[package]]
 name = "actr-framework"
 version = "0.1.4"
-source = "git+https://github.com/actor-rtc/actr?rev=9fe49c89a36f9ac95e82568b58744871a4b7450a#9fe49c89a36f9ac95e82568b58744871a4b7450a"
+source = "git+https://github.com/actor-rtc/actr?rev=0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b#0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b"
 dependencies = [
  "actr-protocol",
  "anyhow",
@@ -34,7 +34,7 @@ dependencies = [
 [[package]]
 name = "actr-mailbox"
 version = "0.1.4"
-source = "git+https://github.com/actor-rtc/actr?rev=9fe49c89a36f9ac95e82568b58744871a4b7450a#9fe49c89a36f9ac95e82568b58744871a4b7450a"
+source = "git+https://github.com/actor-rtc/actr?rev=0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b#0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b"
 dependencies = [
  "actr-protocol",
  "anyhow",
@@ -52,7 +52,7 @@ dependencies = [
 [[package]]
 name = "actr-protocol"
 version = "0.1.5"
-source = "git+https://github.com/actor-rtc/actr?rev=9fe49c89a36f9ac95e82568b58744871a4b7450a#9fe49c89a36f9ac95e82568b58744871a4b7450a"
+source = "git+https://github.com/actor-rtc/actr?rev=0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b#0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b"
 dependencies = [
  "anyhow",
  "base122-rs",
@@ -73,7 +73,7 @@ dependencies = [
 [[package]]
 name = "actr-runtime"
 version = "0.1.6"
-source = "git+https://github.com/actor-rtc/actr?rev=9fe49c89a36f9ac95e82568b58744871a4b7450a#9fe49c89a36f9ac95e82568b58744871a4b7450a"
+source = "git+https://github.com/actor-rtc/actr?rev=0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b#0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b"
 dependencies = [
  "actr-config",
  "actr-framework",
@@ -112,7 +112,7 @@ dependencies = [
 [[package]]
 name = "actr-version"
 version = "0.1.3"
-source = "git+https://github.com/actor-rtc/actr?rev=9fe49c89a36f9ac95e82568b58744871a4b7450a#9fe49c89a36f9ac95e82568b58744871a4b7450a"
+source = "git+https://github.com/actor-rtc/actr?rev=0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b#0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b"
 dependencies = [
  "actr-protocol",
  "anyhow",

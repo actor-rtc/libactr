@@ -148,3 +148,45 @@ impl From<DataStream> for actr_protocol::DataStream {
         }
     }
 }
+
+/// PayloadType enum for specifying transmission type
+///
+/// Determines which WebRTC channel/track to use for data transmission:
+/// - `RpcReliable`: Reliable ordered channel (default for RPC)
+/// - `RpcSignal`: Signaling channel for RPC
+/// - `StreamReliable`: Reliable stream for DataStream
+/// - `StreamLatencyFirst`: Low-latency stream (may drop packets)
+/// - `MediaRtp`: Native RTP track for media
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, uniffi::Enum)]
+pub enum PayloadType {
+    #[default]
+    RpcReliable,
+    RpcSignal,
+    StreamReliable,
+    StreamLatencyFirst,
+    MediaRtp,
+}
+
+impl From<PayloadType> for actr_protocol::PayloadType {
+    fn from(pt: PayloadType) -> Self {
+        match pt {
+            PayloadType::RpcReliable => actr_protocol::PayloadType::RpcReliable,
+            PayloadType::RpcSignal => actr_protocol::PayloadType::RpcSignal,
+            PayloadType::StreamReliable => actr_protocol::PayloadType::StreamReliable,
+            PayloadType::StreamLatencyFirst => actr_protocol::PayloadType::StreamLatencyFirst,
+            PayloadType::MediaRtp => actr_protocol::PayloadType::MediaRtp,
+        }
+    }
+}
+
+impl From<actr_protocol::PayloadType> for PayloadType {
+    fn from(pt: actr_protocol::PayloadType) -> Self {
+        match pt {
+            actr_protocol::PayloadType::RpcReliable => PayloadType::RpcReliable,
+            actr_protocol::PayloadType::RpcSignal => PayloadType::RpcSignal,
+            actr_protocol::PayloadType::StreamReliable => PayloadType::StreamReliable,
+            actr_protocol::PayloadType::StreamLatencyFirst => PayloadType::StreamLatencyFirst,
+            actr_protocol::PayloadType::MediaRtp => PayloadType::MediaRtp,
+        }
+    }
+}

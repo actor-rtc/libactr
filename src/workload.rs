@@ -34,8 +34,8 @@ impl Workload for DynamicWorkload {
     type Dispatcher = DynamicDispatcher;
 
     async fn on_start<C: Context>(&self, ctx: &C) -> ActorResult<()> {
-        let ctx_bridge = ContextBridge::try_from_context(ctx)
-            .map_err(actr_protocol::ProtocolError::from)?;
+        let ctx_bridge =
+            ContextBridge::try_from_context(ctx).map_err(actr_protocol::ProtocolError::from)?;
         self.bridge
             .on_start(ctx_bridge)
             .await
@@ -43,8 +43,8 @@ impl Workload for DynamicWorkload {
     }
 
     async fn on_stop<C: Context>(&self, ctx: &C) -> ActorResult<()> {
-        let ctx_bridge = ContextBridge::try_from_context(ctx)
-            .map_err(actr_protocol::ProtocolError::from)?;
+        let ctx_bridge =
+            ContextBridge::try_from_context(ctx).map_err(actr_protocol::ProtocolError::from)?;
         self.bridge
             .on_stop(ctx_bridge)
             .await

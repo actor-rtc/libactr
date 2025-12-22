@@ -165,30 +165,67 @@ impl ActrRefWrapper {
     ///
     /// # Arguments
     /// - `route_key`: RPC route key (e.g., "echo.EchoService/Echo")
-    /// - `payload`: Request payload bytes (protobuf encoded)
+    /// - `payload_type`: Payload transmission type (RpcReliable, RpcSignal, etc.)
+    /// - `request_payload`: Request payload bytes (protobuf encoded)
+    /// - `timeout_ms`: Timeout in milliseconds
     ///
     /// # Returns
     /// Response payload bytes (protobuf encoded)
-    pub async fn call(&self, route_key: String, request_payload: Vec<u8>) -> ActrResult<Vec<u8>> {
-        info!("call_remote: route={route_key}");
+    pub async fn call(
+        &self,
+        target: ActrId,
+        route_key: String,
+        payload_type: crate::types::PayloadType,
+        request_payload: Vec<u8>,
+        timeout_ms: i64,
+    ) -> ActrResult<Vec<u8>> {
+        let proto_target: actr_protocol::ActrId = target.into();
+        let proto_payload_type: actr_protocol::PayloadType = payload_type.into();
+        info!(
+            "call_remote: target={}, route={route_key}",
+            proto_target.to_string_repr()
+        );
 
         // Send request and wait for response
         let response_bytes = self
             .inner
-            .call_raw(route_key, Bytes::from(request_payload))
+            .call_raw(
+                route_key,
+                Bytes::from(request_payload),
+                timeout_ms,
+                proto_payload_type,
+            )
             .await?;
 
         Ok(response_bytes.to_vec())
     }
 
-    /// Send a DataStream to a remote actor (Fast Path)
-    pub async fn send_data_stream(&self, data_stream: crate::types::DataStream) -> ActrResult<()> {
+    /// Send a one-way message to an actor (fire-and-forget)
+    ///
+    /// # Arguments
+    /// - `target`: Target actor ID
+    /// - `route_key`: RPC route key (e.g., "echo.EchoService/Echo")
+    /// - `payload_type`: Payload transmission type (RpcReliable, RpcSignal, etc.)
+    /// - `message_payload`: Message payload bytes (protobuf encoded)
+    pub async fn tell(
+        &self,
+        target: ActrId,
+        route_key: String,
+        payload_type: crate::types::PayloadType,
+        message_payload: Vec<u8>,
+    ) -> ActrResult<()> {
+        let proto_target: actr_protocol::ActrId = target.into();
+        let proto_payload_type: actr_protocol::PayloadType = payload_type.into();
         info!(
-            "send_data_stream: stream_id={}, seq={}",
-            data_stream.stream_id, data_stream.sequence
+            "tell: target={}, route={route_key}",
+            proto_target.to_string_repr()
         );
 
-        // todo: implement this
+        // Send message without waiting for response
+        self.inner
+            .tell_raw(route_key, Bytes::from(message_payload), proto_payload_type)
+            .await?;
+
         Ok(())
     }
 }
