@@ -173,18 +173,13 @@ impl ActrRefWrapper {
     /// Response payload bytes (protobuf encoded)
     pub async fn call(
         &self,
-        target: ActrId,
         route_key: String,
         payload_type: crate::types::PayloadType,
         request_payload: Vec<u8>,
         timeout_ms: i64,
     ) -> ActrResult<Vec<u8>> {
-        let proto_target: actr_protocol::ActrId = target.into();
         let proto_payload_type: actr_protocol::PayloadType = payload_type.into();
-        info!(
-            "call_remote: target={}, route={route_key}",
-            proto_target.to_string_repr()
-        );
+        info!("call_remote route: {route_key}");
 
         // Send request and wait for response
         let response_bytes = self
@@ -203,23 +198,17 @@ impl ActrRefWrapper {
     /// Send a one-way message to an actor (fire-and-forget)
     ///
     /// # Arguments
-    /// - `target`: Target actor ID
     /// - `route_key`: RPC route key (e.g., "echo.EchoService/Echo")
     /// - `payload_type`: Payload transmission type (RpcReliable, RpcSignal, etc.)
     /// - `message_payload`: Message payload bytes (protobuf encoded)
     pub async fn tell(
         &self,
-        target: ActrId,
         route_key: String,
         payload_type: crate::types::PayloadType,
         message_payload: Vec<u8>,
     ) -> ActrResult<()> {
-        let proto_target: actr_protocol::ActrId = target.into();
         let proto_payload_type: actr_protocol::PayloadType = payload_type.into();
-        info!(
-            "tell: target={}, route={route_key}",
-            proto_target.to_string_repr()
-        );
+        info!("tell route: {route_key}");
 
         // Send message without waiting for response
         self.inner
