@@ -62,22 +62,6 @@ pub trait WorkloadBridge: Send + Sync + 'static {
     /// # Returns
     /// - Response bytes (protobuf encoded)
     ///
-    /// # Example (Kotlin)
-    /// ```kotlin
-    /// override suspend fun dispatch(ctx: ContextBridge, envelope: RpcEnvelopeBridge): ByteArray {
-    ///     Log.i(TAG, "Received request: route_key=${envelope.routeKey}")
-    ///     
-    ///     // Forward to remote server using ctx.callRaw
-    ///     val response = ctx.callRaw(
-    ///         serverId,
-    ///         envelope.routeKey,
-    ///         PayloadType.RPC_RELIABLE,
-    ///         envelope.payload,
-    ///         30000L
-    ///     )
-    ///     return response
-    /// }
-    /// ```
     async fn dispatch(
         &self,
         ctx: Arc<ContextBridge>,
