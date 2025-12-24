@@ -2,7 +2,6 @@
 
 use crate::ActrResult;
 use crate::context::ContextBridge;
-use crate::types::ActrId;
 use actr_framework::{Bytes, Context, MessageDispatcher, Workload};
 use actr_protocol::{ActorResult, RpcEnvelope};
 use async_trait::async_trait;
@@ -34,11 +33,6 @@ impl From<RpcEnvelope> for RpcEnvelopeBridge {
 #[uniffi::export(callback_interface)]
 #[async_trait::async_trait]
 pub trait WorkloadBridge: Send + Sync + 'static {
-    /// Get the server ID for this workload
-    ///
-    /// This identifies the workload's actor identity.
-    async fn server_id(&self) -> ActrId;
-
     /// Lifecycle hook called when the workload starts
     async fn on_start(&self, ctx: Arc<ContextBridge>) -> ActrResult<()>;
 
