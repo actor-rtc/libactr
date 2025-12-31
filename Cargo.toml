@@ -13,10 +13,10 @@ name = "actr"
 
 [dependencies]
 # actr dependencies (use local path for development)
-actr-protocol = { git = "https://github.com/actor-rtc/actr", rev = "0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b" }
-actr-framework = { git = "https://github.com/actor-rtc/actr", rev = "0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b" }
-actr-runtime = { git = "https://github.com/actor-rtc/actr", rev = "0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b" }
-actr-config = { git = "https://github.com/actor-rtc/actr", rev = "0e4ca6c8a7786c6ddd49dd7d6c4d862aa264177b" }
+actr-protocol = { git = "https://github.com/actor-rtc/actr", rev = "76bf743f0bf95e0374e5cb1bbc0a8d64cfd5462e" }
+actr-framework = { git = "https://github.com/actor-rtc/actr", rev = "76bf743f0bf95e0374e5cb1bbc0a8d64cfd5462e" }
+actr-runtime = { git = "https://github.com/actor-rtc/actr", rev = "76bf743f0bf95e0374e5cb1bbc0a8d64cfd5462e" }
+actr-config = { git = "https://github.com/actor-rtc/actr", rev = "76bf743f0bf95e0374e5cb1bbc0a8d64cfd5462e" }
 
 # UniFFI
 uniffi = { version = "0.30.0", features = ["tokio"] }
@@ -28,11 +28,16 @@ bytes = "1.10"
 # Utilities
 thiserror = "2.0.17"
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-android = "0.2"
 url = "2.5"
 async-trait = "0.1"
 parking_lot = "0.12"
 futures-util = "0.3.31"
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.14"
+log = "0.4"
 
 [features]
 default = []

@@ -13,11 +13,13 @@
 
 mod context;
 mod error;
+mod logger;
 mod runtime;
 mod types;
 mod workload;
 
 pub use error::*;
+pub use logger::*;
 pub use runtime::*;
 pub use types::*;
 pub use workload::*;
