@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "actr-config"
 version = "0.1.7"
-source = "git+https://github.com/actor-rtc/actr?rev=072f979bae2f0ebb1d6f316c672fc0cfe6331c0b#072f979bae2f0ebb1d6f316c672fc0cfe6331c0b"
+source = "git+https://github.com/actor-rtc/actr?rev=09757bb556045d2b85edf4812c12db2afd3d2dd5#09757bb556045d2b85edf4812c12db2afd3d2dd5"
 dependencies = [
  "actr-protocol",
  "actr-version",
@@ -19,7 +19,7 @@ dependencies = [
 [[package]]
 name = "actr-framework"
 version = "0.1.5"
-source = "git+https://github.com/actor-rtc/actr?rev=072f979bae2f0ebb1d6f316c672fc0cfe6331c0b#072f979bae2f0ebb1d6f316c672fc0cfe6331c0b"
+source = "git+https://github.com/actor-rtc/actr?rev=09757bb556045d2b85edf4812c12db2afd3d2dd5#09757bb556045d2b85edf4812c12db2afd3d2dd5"
 dependencies = [
  "actr-protocol",
  "anyhow",
@@ -34,7 +34,7 @@ dependencies = [
 [[package]]
 name = "actr-mailbox"
 version = "0.1.5"
-source = "git+https://github.com/actor-rtc/actr?rev=072f979bae2f0ebb1d6f316c672fc0cfe6331c0b#072f979bae2f0ebb1d6f316c672fc0cfe6331c0b"
+source = "git+https://github.com/actor-rtc/actr?rev=09757bb556045d2b85edf4812c12db2afd3d2dd5#09757bb556045d2b85edf4812c12db2afd3d2dd5"
 dependencies = [
  "actr-protocol",
  "anyhow",
@@ -52,7 +52,7 @@ dependencies = [
 [[package]]
 name = "actr-protocol"
 version = "0.1.6"
-source = "git+https://github.com/actor-rtc/actr?rev=072f979bae2f0ebb1d6f316c672fc0cfe6331c0b#072f979bae2f0ebb1d6f316c672fc0cfe6331c0b"
+source = "git+https://github.com/actor-rtc/actr?rev=09757bb556045d2b85edf4812c12db2afd3d2dd5#09757bb556045d2b85edf4812c12db2afd3d2dd5"
 dependencies = [
  "anyhow",
  "base122-rs",
@@ -73,7 +73,7 @@ dependencies = [
 [[package]]
 name = "actr-runtime"
 version = "0.1.7"
-source = "git+https://github.com/actor-rtc/actr?rev=072f979bae2f0ebb1d6f316c672fc0cfe6331c0b#072f979bae2f0ebb1d6f316c672fc0cfe6331c0b"
+source = "git+https://github.com/actor-rtc/actr?rev=09757bb556045d2b85edf4812c12db2afd3d2dd5#09757bb556045d2b85edf4812c12db2afd3d2dd5"
 dependencies = [
  "actr-config",
  "actr-framework",
@@ -97,11 +97,13 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 1.0.69",
  "tokio",
  "tokio-stream",
  "tokio-tungstenite",
  "tokio-util",
+ "toml 0.8.23",
  "tracing",
  "tracing-subscriber",
  "url",
@@ -112,7 +114,7 @@ dependencies = [
 [[package]]
 name = "actr-version"
 version = "0.1.4"
-source = "git+https://github.com/actor-rtc/actr?rev=072f979bae2f0ebb1d6f316c672fc0cfe6331c0b#072f979bae2f0ebb1d6f316c672fc0cfe6331c0b"
+source = "git+https://github.com/actor-rtc/actr?rev=09757bb556045d2b85edf4812c12db2afd3d2dd5#09757bb556045d2b85edf4812c12db2afd3d2dd5"
 dependencies = [
  "actr-protocol",
  "anyhow",
