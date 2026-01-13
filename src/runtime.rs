@@ -1,11 +1,11 @@
 //! Runtime wrappers for UniFFI export
 
 use crate::error::{ActrError, ActrResult};
-use crate::types::{ActrId, ActrType};
+use crate::types::{ActrId, ActrType, NetworkEventResult};
 use crate::workload::{DynamicWorkload, WorkloadBridge};
 use actr_config::Config;
 use actr_protocol::{ActrIdExt, ActrTypeExt};
-use actr_runtime::{ActrNode, ActrRef, ActrSystem};
+use actr_runtime::{ActrNode, ActrRef, ActrSystem, NetworkEventHandle};
 use bytes::Bytes;
 use parking_lot::Mutex;
 use std::sync::Arc;
@@ -16,6 +16,7 @@ use tracing::{debug, error, info};
 pub struct ActrSystemWrapper {
     inner: Mutex<Option<ActrSystem>>,
     config: Config,
+    network_event_handle: Mutex<Option<NetworkEventHandle>>,
 }
 
 #[uniffi::export]
@@ -47,6 +48,7 @@ impl ActrSystemWrapper {
         Ok(Arc::new(Self {
             inner: Mutex::new(Some(system)),
             config,
+            network_event_handle: Mutex::new(None),
         }))
     }
 
@@ -70,6 +72,71 @@ impl ActrSystemWrapper {
             inner: Mutex::new(Some(node)),
             config: self.config.clone(),
         }))
+    }
+
+    /// Create a network event handle for platform callbacks.
+    ///
+    /// This must be called before `attach()` or after a previous handle was created.
+    pub fn create_network_event_handle(&self) -> ActrResult<Arc<NetworkEventHandleWrapper>> {
+        let mut handle_guard = self.network_event_handle.lock();
+        if let Some(handle) = handle_guard.as_ref() {
+            return Ok(Arc::new(NetworkEventHandleWrapper {
+                inner: handle.clone(),
+            }));
+        }
+
+        let system_guard = self.inner.lock();
+        let system = system_guard.as_ref().ok_or_else(|| ActrError::StateError {
+            msg: "ActrSystem already consumed".to_string(),
+        })?;
+
+        let handle = system.create_network_event_handle();
+        *handle_guard = Some(handle.clone());
+
+        Ok(Arc::new(NetworkEventHandleWrapper { inner: handle }))
+    }
+}
+
+/// Wrapper for NetworkEventHandle - network lifecycle callbacks
+#[derive(uniffi::Object)]
+pub struct NetworkEventHandleWrapper {
+    inner: NetworkEventHandle,
+}
+
+#[uniffi::export(async_runtime = "tokio")]
+impl NetworkEventHandleWrapper {
+    /// Handle network available event
+    pub async fn handle_network_available(&self) -> ActrResult<NetworkEventResult> {
+        let result = self
+            .inner
+            .handle_network_available()
+            .await
+            .map_err(|e| ActrError::InternalError { msg: e })?;
+        Ok(result.into())
+    }
+
+    /// Handle network lost event
+    pub async fn handle_network_lost(&self) -> ActrResult<NetworkEventResult> {
+        let result = self
+            .inner
+            .handle_network_lost()
+            .await
+            .map_err(|e| ActrError::InternalError { msg: e })?;
+        Ok(result.into())
+    }
+
+    /// Handle network type changed event
+    pub async fn handle_network_type_changed(
+        &self,
+        is_wifi: bool,
+        is_cellular: bool,
+    ) -> ActrResult<NetworkEventResult> {
+        let result = self
+            .inner
+            .handle_network_type_changed(is_wifi, is_cellular)
+            .await
+            .map_err(|e| ActrError::InternalError { msg: e })?;
+        Ok(result.into())
     }
 }
 

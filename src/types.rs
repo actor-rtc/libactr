@@ -2,8 +2,9 @@
 //!
 //! These types mirror the types from actr-protocol but with UniFFI derives.
 //! They provide automatic conversion to/from the original types.
+//! Additional types cover runtime lifecycle bindings.
 
-use actr_protocol;
+use actr_runtime::lifecycle as runtime_lifecycle;
 
 /// Security realm identifier
 #[derive(Debug, Clone, PartialEq, Eq, Hash, uniffi::Record)]
@@ -187,6 +188,50 @@ impl From<actr_protocol::PayloadType> for PayloadType {
             actr_protocol::PayloadType::StreamReliable => PayloadType::StreamReliable,
             actr_protocol::PayloadType::StreamLatencyFirst => PayloadType::StreamLatencyFirst,
             actr_protocol::PayloadType::MediaRtp => PayloadType::MediaRtp,
+        }
+    }
+}
+
+/// Network event types for runtime lifecycle callbacks
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Enum)]
+pub enum NetworkEvent {
+    Available,
+    Lost,
+    TypeChanged { is_wifi: bool, is_cellular: bool },
+}
+
+impl From<runtime_lifecycle::NetworkEvent> for NetworkEvent {
+    fn from(event: runtime_lifecycle::NetworkEvent) -> Self {
+        match event {
+            runtime_lifecycle::NetworkEvent::Available => NetworkEvent::Available,
+            runtime_lifecycle::NetworkEvent::Lost => NetworkEvent::Lost,
+            runtime_lifecycle::NetworkEvent::TypeChanged {
+                is_wifi,
+                is_cellular,
+            } => NetworkEvent::TypeChanged {
+                is_wifi,
+                is_cellular,
+            },
+        }
+    }
+}
+
+/// Network event processing result returned by the runtime
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct NetworkEventResult {
+    pub event: NetworkEvent,
+    pub success: bool,
+    pub error: Option<String>,
+    pub duration_ms: u64,
+}
+
+impl From<runtime_lifecycle::NetworkEventResult> for NetworkEventResult {
+    fn from(result: runtime_lifecycle::NetworkEventResult) -> Self {
+        Self {
+            event: result.event.into(),
+            success: result.success,
+            error: result.error,
+            duration_ms: result.duration_ms,
         }
     }
 }
