@@ -13,10 +13,10 @@ name = "actr"
 
 [dependencies]
 # actr dependencies (use local path for development)
-actr-protocol = { git = "https://github.com/actor-rtc/actr", rev = "79bc38887c2afb8a629c3e52cf5474db4c2d6baa" }
-actr-framework = { git = "https://github.com/actor-rtc/actr", rev = "79bc38887c2afb8a629c3e52cf5474db4c2d6baa" }
-actr-runtime = { git = "https://github.com/actor-rtc/actr", rev = "79bc38887c2afb8a629c3e52cf5474db4c2d6baa" }
-actr-config = { git = "https://github.com/actor-rtc/actr", rev = "79bc38887c2afb8a629c3e52cf5474db4c2d6baa" }
+actr-protocol = { git = "https://github.com/actor-rtc/actr", rev = "be2928c1bc9c1287e1201744641f001540b1f6e0" }
+actr-framework = { git = "https://github.com/actor-rtc/actr", rev = "be2928c1bc9c1287e1201744641f001540b1f6e0" }
+actr-runtime = { git = "https://github.com/actor-rtc/actr", rev = "be2928c1bc9c1287e1201744641f001540b1f6e0" }
+actr-config = { git = "https://github.com/actor-rtc/actr", rev = "be2928c1bc9c1287e1201744641f001540b1f6e0" }
 
 # UniFFI
 uniffi = { version = "0.30.0", features = ["tokio"] }
