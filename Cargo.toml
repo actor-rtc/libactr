@@ -35,6 +35,10 @@ async-trait = "0.1"
 parking_lot = "0.12"
 futures-util = "0.3.31"
 
+# OpenSSL (vendored for cross-compilation)
+openssl = { version = "0.10", features = ["vendored"] }
+openssl-sys = { version = "0.9", features = ["vendored"] }
+
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.14"
 log = "0.4"
