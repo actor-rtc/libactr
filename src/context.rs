@@ -1,10 +1,23 @@
 use actr_framework::{Bytes, Context, DataStream, Dest};
 use actr_protocol::{ActrId, PayloadType};
 use actr_runtime::context::RuntimeContext;
+use async_trait::async_trait;
 use std::any::TypeId;
 use std::sync::Arc;
 
 use crate::{ActrError, ActrResult};
+
+/// Callback interface for DataStream events.
+#[uniffi::export(callback_interface)]
+#[async_trait]
+pub trait DataStreamCallback: Send + Sync + 'static {
+    /// Handle an incoming DataStream chunk.
+    async fn on_stream(
+        &self,
+        chunk: crate::types::DataStream,
+        sender: crate::types::ActrId,
+    ) -> ActrResult<()>;
+}
 
 /// Context provided to the workload
 #[derive(uniffi::Object, Clone)]
@@ -106,7 +119,7 @@ impl ContextBridge {
     /// # Arguments
     /// - `target`: Target actor ID
     /// - `chunk`: DataStream containing stream_id, sequence, payload, etc.
-    pub async fn send_data_stream_raw(
+    pub async fn send_data_stream(
         &self,
         target: crate::types::ActrId,
         chunk: crate::types::DataStream,
@@ -116,6 +129,35 @@ impl ContextBridge {
         self.inner
             .send_data_stream(&Dest::Actor(target_id), chunk)
             .await?;
+        Ok(())
+    }
+
+    /// Register a DataStream callback for a stream ID.
+    pub async fn register_stream(
+        &self,
+        stream_id: String,
+        callback: Box<dyn DataStreamCallback>,
+    ) -> crate::error::ActrResult<()> {
+        let callback: Arc<dyn DataStreamCallback> = Arc::from(callback);
+        self.inner
+            .register_stream(stream_id, move |chunk, sender| {
+                let callback = callback.clone();
+                Box::pin(async move {
+                    let chunk: crate::types::DataStream = chunk.into();
+                    let sender: crate::types::ActrId = sender.into();
+                    callback
+                        .on_stream(chunk, sender)
+                        .await
+                        .map_err(actr_protocol::ProtocolError::from)
+                })
+            })
+            .await?;
+        Ok(())
+    }
+
+    /// Unregister a DataStream callback for a stream ID.
+    pub async fn unregister_stream(&self, stream_id: String) -> crate::error::ActrResult<()> {
+        self.inner.unregister_stream(&stream_id).await?;
         Ok(())
     }
 
