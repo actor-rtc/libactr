@@ -119,7 +119,7 @@ impl ContextBridge {
     /// # Arguments
     /// - `target`: Target actor ID
     /// - `chunk`: DataStream containing stream_id, sequence, payload, etc.
-    pub async fn send_data_stream_raw(
+    pub async fn send_data_stream(
         &self,
         target: crate::types::ActrId,
         chunk: crate::types::DataStream,
