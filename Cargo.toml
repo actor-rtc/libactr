@@ -12,11 +12,15 @@ crate-type = ["cdylib", "staticlib"]
 name = "actr"
 
 [dependencies]
-# actr dependencies (use local path for development)
-actr-protocol = { git = "https://github.com/actor-rtc/actr", rev = "be2928c1bc9c1287e1201744641f001540b1f6e0" }
-actr-framework = { git = "https://github.com/actor-rtc/actr", rev = "be2928c1bc9c1287e1201744641f001540b1f6e0" }
-actr-runtime = { git = "https://github.com/actor-rtc/actr", rev = "be2928c1bc9c1287e1201744641f001540b1f6e0" }
-actr-config = { git = "https://github.com/actor-rtc/actr", rev = "be2928c1bc9c1287e1201744641f001540b1f6e0" }
+# actr dependencies (pin to latest main commit)
+actr-protocol = { git = "https://github.com/actor-rtc/actr", rev = "bce812f95353cbc303934266aa13425945802140" }
+actr-framework = { git = "https://github.com/actor-rtc/actr", rev = "bce812f95353cbc303934266aa13425945802140" }
+actr-runtime = { git = "https://github.com/actor-rtc/actr", rev = "bce812f95353cbc303934266aa13425945802140", features = [
+    "opentelemetry",
+] }
+actr-config = { git = "https://github.com/actor-rtc/actr", rev = "bce812f95353cbc303934266aa13425945802140", features = [
+    "opentelemetry",
+] }
 
 # UniFFI
 uniffi = { version = "0.30.0", features = ["tokio"] }
@@ -30,10 +34,17 @@ thiserror = "2.0.17"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-android = "0.2"
+tracing-oslog = { version = "0.2", optional = true }
 url = "2.5"
 async-trait = "0.1"
 parking_lot = "0.12"
 futures-util = "0.3.31"
+
+# OpenTelemetry
+opentelemetry = { version = "0.30.0", features = ["trace"] }
+opentelemetry_sdk = { version = "0.30.0", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.30.0", features = ["grpc-tonic"] }
+tracing-opentelemetry = "0.31"
 
 # OpenSSL (vendored for cross-compilation)
 openssl = { version = "0.10", features = ["vendored"] }
@@ -45,3 +56,5 @@ log = "0.4"
 
 [features]
 default = []
+opentelemetry = []
+macos-oslog = ["tracing-oslog"]
