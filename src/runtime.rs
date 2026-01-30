@@ -94,7 +94,8 @@ impl ActrSystemWrapper {
             msg: "ActrSystem already consumed".to_string(),
         })?;
 
-        let handle = system.create_network_event_handle();
+        // Use default debounce behavior (0 = default).
+        let handle = system.create_network_event_handle(0);
         *handle_guard = Some(handle.clone());
 
         Ok(Arc::new(NetworkEventHandleWrapper { inner: handle }))
