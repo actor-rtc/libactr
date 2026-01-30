@@ -13,12 +13,12 @@ name = "actr"
 
 [dependencies]
 # actr dependencies (pin to latest main commit)
-actr-protocol = { git = "https://github.com/actor-rtc/actr", rev = "bce812f95353cbc303934266aa13425945802140" }
-actr-framework = { git = "https://github.com/actor-rtc/actr", rev = "bce812f95353cbc303934266aa13425945802140" }
-actr-runtime = { git = "https://github.com/actor-rtc/actr", rev = "bce812f95353cbc303934266aa13425945802140", features = [
+actr-protocol = { git = "https://github.com/actor-rtc/actr", branch = "main" }
+actr-framework = { git = "https://github.com/actor-rtc/actr", branch = "main" }
+actr-runtime = { git = "https://github.com/actor-rtc/actr", branch = "main", features = [
     "opentelemetry",
 ] }
-actr-config = { git = "https://github.com/actor-rtc/actr", rev = "bce812f95353cbc303934266aa13425945802140", features = [
+actr-config = { git = "https://github.com/actor-rtc/actr", branch = "main", features = [
     "opentelemetry",
 ] }
 
