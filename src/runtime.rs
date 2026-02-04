@@ -143,6 +143,16 @@ impl NetworkEventHandleWrapper {
             .map_err(|e| ActrError::InternalError { msg: e })?;
         Ok(result.into())
     }
+
+    /// Cleanup all connections (does not depend on network events).
+    pub async fn cleanup_connections(&self) -> ActrResult<NetworkEventResult> {
+        let result = self
+            .inner
+            .cleanup_connections()
+            .await
+            .map_err(|e| ActrError::InternalError { msg: e })?;
+        Ok(result.into())
+    }
 }
 
 /// Wrapper for ActrNode - a node ready to start

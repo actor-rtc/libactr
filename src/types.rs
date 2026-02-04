@@ -198,6 +198,7 @@ pub enum NetworkEvent {
     Available,
     Lost,
     TypeChanged { is_wifi: bool, is_cellular: bool },
+    CleanupConnections,
 }
 
 impl From<runtime_lifecycle::NetworkEvent> for NetworkEvent {
@@ -212,6 +213,7 @@ impl From<runtime_lifecycle::NetworkEvent> for NetworkEvent {
                 is_wifi,
                 is_cellular,
             },
+            runtime_lifecycle::NetworkEvent::CleanupConnections => NetworkEvent::CleanupConnections,
         }
     }
 }
