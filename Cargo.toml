@@ -12,13 +12,13 @@ crate-type = ["cdylib", "staticlib"]
 name = "actr"
 
 [dependencies]
-# actr dependencies (pin to latest main commit)
-actr-protocol = { git = "https://github.com/actor-rtc/actr", rev = "ee1ccc800ca9a493e08214415d04077e7dc7cf95" }
-actr-framework = { git = "https://github.com/actor-rtc/actr", rev = "ee1ccc800ca9a493e08214415d04077e7dc7cf95" }
-actr-runtime = { git = "https://github.com/actor-rtc/actr", rev = "ee1ccc800ca9a493e08214415d04077e7dc7cf95", features = [
+# actr dependencies (pin to selected upstream commit)
+actr-protocol = { git = "https://github.com/Actrium/actr", rev = "dceb06c763255350dd3d7ccbd7f203ba7216490f" }
+actr-framework = { git = "https://github.com/Actrium/actr", rev = "dceb06c763255350dd3d7ccbd7f203ba7216490f" }
+actr-runtime = { git = "https://github.com/Actrium/actr", rev = "dceb06c763255350dd3d7ccbd7f203ba7216490f", features = [
     "opentelemetry",
 ] }
-actr-config = { git = "https://github.com/actor-rtc/actr", rev = "ee1ccc800ca9a493e08214415d04077e7dc7cf95", features = [
+actr-config = { git = "https://github.com/Actrium/actr", rev = "dceb06c763255350dd3d7ccbd7f203ba7216490f", features = [
     "opentelemetry",
 ] }
 
