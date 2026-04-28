@@ -13,12 +13,12 @@ name = "actr"
 
 [dependencies]
 # actr dependencies (pin to selected upstream commit)
-actr-protocol = { git = "https://github.com/Actrium/actr", rev = "dceb06c763255350dd3d7ccbd7f203ba7216490f" }
-actr-framework = { git = "https://github.com/Actrium/actr", rev = "dceb06c763255350dd3d7ccbd7f203ba7216490f" }
-actr-runtime = { git = "https://github.com/Actrium/actr", rev = "dceb06c763255350dd3d7ccbd7f203ba7216490f", features = [
+actr-protocol = { git = "https://github.com/Actrium/actr", rev = "76cef50ab3107eba24f88b6c1fd3703d4cb31b35" }
+actr-framework = { git = "https://github.com/Actrium/actr", rev = "76cef50ab3107eba24f88b6c1fd3703d4cb31b35" }
+actr-runtime = { git = "https://github.com/Actrium/actr", rev = "76cef50ab3107eba24f88b6c1fd3703d4cb31b35", features = [
     "opentelemetry",
 ] }
-actr-config = { git = "https://github.com/Actrium/actr", rev = "dceb06c763255350dd3d7ccbd7f203ba7216490f", features = [
+actr-config = { git = "https://github.com/Actrium/actr", rev = "76cef50ab3107eba24f88b6c1fd3703d4cb31b35", features = [
     "opentelemetry",
 ] }
 
